@@ -188,15 +188,32 @@ std::vector <helib::Ctxt> lev_dist(std::vector <helib::CtPtrs_vectorCt> & fst, s
             helib::CtPtrs_vectorCt val1(val1_aux);  
 
             helib::addTwoNumbers(val1, helib::CtPtrs_vectorCt(d_prev[j]), constant_1, DIST_BITLEN, &unpackSlotEncoding);     
-
+            
             std::vector <helib::Ctxt> val2_aux(DIST_BITLEN, empty_ctxt);
             helib::CtPtrs_vectorCt val2(val2_aux);
 
             helib::addTwoNumbers(val2, helib::CtPtrs_vectorCt(d[j - 1]), constant_1, DIST_BITLEN, &unpackSlotEncoding);
 
+            if(val0.v[0].bitCapacity() < 200)
+                helib::packedRecrypt(val0, unpackSlotEncoding, ea);
+
+            if(val1.v[0].bitCapacity() < 200)
+                helib::packedRecrypt(val1, unpackSlotEncoding, ea);
+
+            if(val2.v[0].bitCapacity() < 200)
+                helib::packedRecrypt(val2, unpackSlotEncoding, ea);
+
             std::vector <helib::Ctxt> m1 = min(val0, val1);
+
+            if(m1[0].bitCapacity() < 200)
+                helib::packedRecrypt(helib::CtPtrs_vectorCt(m1), unpackSlotEncoding, ea);
+
             d[j] = min(helib::CtPtrs_vectorCt(m1), val2);
 
+            // empirical value
+            if(d[j][0].bitCapacity() < 200)
+                helib::packedRecrypt(helib::CtPtrs_vectorCt(d[j]), unpackSlotEncoding, ea);
+        
             d_prev[j - 1] = d[j - 1]; // prepare for the next value of i
         }
         d_prev[m] = d[m];
