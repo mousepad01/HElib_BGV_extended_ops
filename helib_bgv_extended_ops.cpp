@@ -221,3 +221,33 @@ std::vector <helib::Ctxt> lev_dist(std::vector <helib::CtPtrs_vectorCt> & fst, s
 
     return d[m];
 }
+
+void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len, 
+            std::function <helib::Ctxt(helib::CtPtrs_vectorCt, helib::CtPtrs_vectorCt)> comparator) {
+
+    const helib::PubKey & pk = to_sort[0].v[0].getPubKey();
+    const helib::Context & context = to_sort[0].v[0].getContext();
+    const helib::EncryptedArray & ea = context.getEA();
+
+    std::vector<helib::zzX> unpackSlotEncoding;
+    buildUnpackSlotEncoding(unpackSlotEncoding, ea);
+
+    for(int i = len - 1; i > 0; i--){
+        for(int j = 0; j < i; j++){
+
+            if(to_sort[j].v[0].bitCapacity() < 200)
+                helib::packedRecrypt(to_sort[j], unpackSlotEncoding, ea);
+
+            if(to_sort[j + 1].v[0].bitCapacity() < 200)
+                helib::packedRecrypt(to_sort[j + 1], unpackSlotEncoding, ea);
+
+            helib::Ctxt swap_condition = comparator(to_sort[j], to_sort[j + 1]);
+            
+            std::vector <helib::Ctxt> to_sort_j_v = if_then_else(swap_condition, to_sort[j + 1], to_sort[j]);
+            std::vector <helib::Ctxt> to_sort_j1_v = if_then_else(swap_condition, to_sort[j], to_sort[j + 1]);
+
+            to_sort[j].v = to_sort_j_v;
+            to_sort[j + 1].v = to_sort_j1_v;
+        }
+    }
+}
