@@ -23,5 +23,9 @@ static inline std::vector <helib::Ctxt> min(const helib::CtPtrs_vectorCt & fst, 
 
 std::vector <helib::Ctxt> lev_dist(std::vector <helib::CtPtrs_vectorCt> & fst, std::vector <helib::CtPtrs_vectorCt> & snd, const int DIST_BITLEN = 8);
 
+std::vector <helib::Ctxt> max(const std::vector <helib::CtPtrs_vectorCt> & values);
+
+std::vector <helib::Ctxt> min(const std::vector <helib::CtPtrs_vectorCt> & values);
+
 void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len, 
             std::function <helib::Ctxt(helib::CtPtrs_vectorCt, helib::CtPtrs_vectorCt)> comparator = operator >);

@@ -222,6 +222,38 @@ std::vector <helib::Ctxt> lev_dist(std::vector <helib::CtPtrs_vectorCt> & fst, s
     return d[m];
 }
 
+static std::vector <helib::Ctxt> __max(const std::vector <helib::CtPtrs_vectorCt> & values, int offset, int len) {
+
+    if(len == 1)
+        return values[offset].v;
+
+    std::vector <helib::Ctxt> fst_max = __max(values, offset, len / 2);
+    std::vector <helib::Ctxt> snd_max = __max(values, offset + len / 2, len - len / 2);
+
+    return max(helib::CtPtrs_vectorCt(fst_max), helib::CtPtrs_vectorCt(snd_max));
+}
+
+static std::vector <helib::Ctxt> __min(const std::vector <helib::CtPtrs_vectorCt> & values, int offset, int len) {
+
+    if(len == 1)
+        return values[offset].v;
+
+    std::vector <helib::Ctxt> fst_min = __min(values, offset, len / 2);
+    std::vector <helib::Ctxt> snd_min = __min(values, offset + len / 2, len - len / 2);
+
+    return min(helib::CtPtrs_vectorCt(fst_min), helib::CtPtrs_vectorCt(snd_min));
+}
+
+std::vector <helib::Ctxt> max(const std::vector <helib::CtPtrs_vectorCt> & values){
+
+    return __max(values, 0, values.size());
+}
+
+std::vector <helib::Ctxt> min(const std::vector <helib::CtPtrs_vectorCt> & values) {
+
+    return __min(values, 0, values.size());
+}
+
 void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len, 
             std::function <helib::Ctxt(helib::CtPtrs_vectorCt, helib::CtPtrs_vectorCt)> comparator) {
 
