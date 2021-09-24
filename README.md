@@ -7,5 +7,7 @@ The following operations are implemented:
 * Equality (==, !=)
 * Comparison (>, <)
 * Min, Max of 2 numbers
+* Min, Max on vector of numbers
 * Sorting
 * Levenshtein distance 
+* Shortest Path for graph with encrypted edge weights
