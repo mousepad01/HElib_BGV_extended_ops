@@ -29,3 +29,7 @@ std::vector <helib::Ctxt> min(const std::vector <helib::CtPtrs_vectorCt> & value
 
 void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len, 
             std::function <helib::Ctxt(helib::CtPtrs_vectorCt, helib::CtPtrs_vectorCt)> comparator = operator >);
+
+// Bellman-Ford implementation over graph with HElib-BGV encrypted weights
+std::vector <helib::Ctxt> shortest_path_cost(const std::vector <std::tuple <int, int, helib::CtPtrs_vectorCt>> & edges, const int node_cnt,
+                                                const helib::CtPtrs_vectorCt & src, const helib::CtPtrs_vectorCt & dst, const int DIST_BITLEN = 8);

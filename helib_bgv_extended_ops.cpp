@@ -244,7 +244,7 @@ static std::vector <helib::Ctxt> __min(const std::vector <helib::CtPtrs_vectorCt
     return min(helib::CtPtrs_vectorCt(fst_min), helib::CtPtrs_vectorCt(snd_min));
 }
 
-std::vector <helib::Ctxt> max(const std::vector <helib::CtPtrs_vectorCt> & values){
+std::vector <helib::Ctxt> max(const std::vector <helib::CtPtrs_vectorCt> & values) {
 
     return __max(values, 0, values.size());
 }
@@ -282,4 +282,66 @@ void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len,
             to_sort[j + 1].v = to_sort_j1_v;
         }
     }
+}
+
+std::vector <helib::Ctxt> shortest_path_cost(const std::vector <std::tuple <int, int, helib::CtPtrs_vectorCt>> & edges, const int node_cnt,
+                                                const helib::CtPtrs_vectorCt & src, const helib::CtPtrs_vectorCt & dst, const int DIST_BITLEN) {
+
+    const helib::PubKey & pk = src.v[0].getPubKey();
+    const helib::Context & context = src.v[0].getContext();
+    const helib::EncryptedArray & ea = context.getEA();
+
+    std::vector<helib::zzX> unpackSlotEncoding;
+    buildUnpackSlotEncoding(unpackSlotEncoding, ea);
+
+    helib::Ctxt empty_ctxt(pk);
+    std::vector <helib::Ctxt> empty(DIST_BITLEN, empty_ctxt);
+
+    uint64_t INF = ((uint64_t)1 << 63) - 1;
+    std::vector <helib::Ctxt> inf_enc_aux = ct_bin_enc(INF, DIST_BITLEN, ea, pk);
+    const helib::CtPtrs_vectorCt INF_enc = helib::CtPtrs_vectorCt(inf_enc_aux);
+
+    std::vector <helib::Ctxt> CT_0_raw = ct_bin_enc(0, DIST_BITLEN, ea, pk);
+    const helib::CtPtrs_vectorCt CT_0_enc = helib::CtPtrs_vectorCt(CT_0_raw);
+
+    std::vector <std::vector <helib::Ctxt>> dist(node_cnt, empty);
+    std::vector <std::vector <helib::Ctxt>> node_i_enc(node_cnt, empty);
+
+    for(int node = 0; node < node_cnt; node++){
+
+        node_i_enc[node] = ct_bin_enc(node, DIST_BITLEN, ea, pk);
+
+        helib::Ctxt node_src_eq = helib::CtPtrs_vectorCt(node_i_enc[node]) == src;
+        dist[node] = if_then_else(node_src_eq, CT_0_enc, INF_enc);
+    }
+
+    for(int rnd = 0; rnd < node_cnt - 1; rnd++){
+
+        for(auto & n1_n2_cost : edges){
+
+            int n1 = std::get <0>(n1_n2_cost);
+            int n2 = std::get <1>(n1_n2_cost);
+            helib::CtPtrs_vectorCt cost = std::get <2>(n1_n2_cost);
+
+            std::vector <helib::Ctxt> new_cost_raw(DIST_BITLEN, empty_ctxt);
+            helib::CtPtrs_vectorCt new_cost(new_cost_raw);
+
+            helib::addTwoNumbers(new_cost, helib::CtPtrs_vectorCt(dist[n1]), cost, DIST_BITLEN, &unpackSlotEncoding);
+
+            dist[n2] = min(new_cost, helib::CtPtrs_vectorCt(dist[n2]));
+        }
+    }
+
+    std::vector <helib::Ctxt> searched_dist_raw = CT_0_raw;
+    helib::CtPtrs_vectorCt searched_dist(searched_dist_raw);
+
+    for(int node = 0; node < node_cnt; node++){
+
+        std::vector <helib::Ctxt> updated_dist_raw = if_then_else(helib::CtPtrs_vectorCt(node_i_enc[node]) == dst, dist[node], CT_0_enc);
+        helib::CtPtrs_vectorCt updated_dist = helib::CtPtrs_vectorCt(updated_dist_raw);
+        
+        searched_dist += updated_dist;
+    }
+
+    return searched_dist_raw;
 }
