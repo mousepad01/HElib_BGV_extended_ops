@@ -284,6 +284,32 @@ void sort(std::vector <helib::CtPtrs_vectorCt> & to_sort, int len,
     }
 }
 
+static std::vector <helib::Ctxt> __get_val_bykey(std::vector <std::vector <helib::Ctxt>> & keys, std::vector <helib::Ctxt> & searched_key,
+                                                    std::vector <std::vector <helib::Ctxt>> & values, const int offset, const int len, 
+                                                    std::vector <helib::zzX> & unpackSlotEncoding, const helib::PubKey & pk, const helib::EncryptedArray & ea) {
+    
+    if(len == 1) {
+
+        std::vector <helib::Ctxt> CT_0_raw = ct_bin_enc(0, values[0].size(), ea, pk);
+        helib::CtPtrs_vectorCt CT_0_enc(CT_0_raw);
+        helib::CtPtrs_vectorCt key_to_check(keys[offset]);
+        helib::CtPtrs_vectorCt value_to_check(values[offset]);
+        helib::CtPtrs_vectorCt searched_key_wrap(searched_key);
+
+        return if_then_else(key_to_check == searched_key_wrap, value_to_check, CT_0_enc);
+    }
+    
+    std::vector <helib::Ctxt> fst_res = __get_val_bykey(keys, searched_key, values, offset, len / 2, unpackSlotEncoding, pk, ea);
+    std::vector <helib::Ctxt> snd_res = __get_val_bykey(keys, searched_key, values, offset + len / 2, len - len / 2, unpackSlotEncoding, pk, ea);
+
+    std::vector <helib::Ctxt> res_raw;
+    helib::CtPtrs_vectorCt res(res_raw);
+
+    helib::addTwoNumbers(res, helib::CtPtrs_vectorCt(fst_res), helib::CtPtrs_vectorCt(snd_res), values[0].size(), &unpackSlotEncoding);
+
+    return res_raw;
+}
+
 std::vector <helib::Ctxt> shortest_path_cost(const std::vector <std::tuple <int, int, helib::CtPtrs_vectorCt>> & edges, const int node_cnt,
                                                 const helib::CtPtrs_vectorCt & src, const helib::CtPtrs_vectorCt & dst, const int DIST_BITLEN) {
 
@@ -332,16 +358,5 @@ std::vector <helib::Ctxt> shortest_path_cost(const std::vector <std::tuple <int,
         }
     }
 
-    std::vector <helib::Ctxt> searched_dist_raw = CT_0_raw;
-    helib::CtPtrs_vectorCt searched_dist(searched_dist_raw);
-
-    for(int node = 0; node < node_cnt; node++){
-
-        std::vector <helib::Ctxt> updated_dist_raw = if_then_else(helib::CtPtrs_vectorCt(node_i_enc[node]) == dst, dist[node], CT_0_enc);
-        helib::CtPtrs_vectorCt updated_dist = helib::CtPtrs_vectorCt(updated_dist_raw);
-        
-        searched_dist += updated_dist;
-    }
-
-    return searched_dist_raw;
+    return __get_val_bykey(node_i_enc, dst.v, dist, 0, node_cnt, unpackSlotEncoding, pk, ea);
 }
