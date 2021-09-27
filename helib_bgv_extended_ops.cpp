@@ -326,15 +326,30 @@ namespace heExtended{
         helib::Ctxt empty_ctxt(pk);
         std::vector <helib::Ctxt> empty(DIST_BITLEN, empty_ctxt);
 
-        uint64_t INF = ((uint64_t)1 << 63) - 1;
+        /**
+         * INF must be chosen so that it should be bigger than most values, but also
+         * should not overflow, so that INF + (anything) ~= INF
+         * 
+         * max INF > sum(Wi + INF) =>
+         * max INF > m * INF + sum(Wi)
+         * assuming Wi = max(Wi) for every i,
+         * max INF > m * INF + m * max(Wi) =>
+         * max INF > m * (INF + max(Wi))
+         * assuming max(Wi) = INF,
+         * max INF > 2 * m * INF
+         * the maximum possible value for max INF is (1 << DIST_BITLEN) - 1 => 
+         * (1 << DIST_BITLEN) - 1 > 2 * m * INF =>
+         * *** INF ~= ((1 << (DIST_BITLEN - 1)) / m) - 1 and max(Wi) < INF (i = 1, ... m) ***
+        **/
+        uint64_t INF = (((uint64_t)1 << (DIST_BITLEN - 1)) / edges.size()) - 1;
         std::vector <helib::Ctxt> inf_enc_aux = ct_bin_enc(INF, DIST_BITLEN, ea, pk);
         const helib::CtPtrs_vectorCt INF_enc = helib::CtPtrs_vectorCt(inf_enc_aux);
 
         std::vector <helib::Ctxt> CT_0_raw = ct_bin_enc(0, DIST_BITLEN, ea, pk);
         const helib::CtPtrs_vectorCt CT_0_enc = helib::CtPtrs_vectorCt(CT_0_raw);
 
-        std::vector <std::vector <helib::Ctxt>> dist(node_cnt + 1, empty);
-        std::vector <std::vector <helib::Ctxt>> node_i_enc(node_cnt + 1, empty);
+        std::vector <std::vector <helib::Ctxt>> dist(node_cnt, empty);
+        std::vector <std::vector <helib::Ctxt>> node_i_enc(node_cnt, empty);
 
         for(int node = 0; node < node_cnt; node++){
 
@@ -390,10 +405,21 @@ namespace heExtended{
         std::vector <helib::Ctxt> empty(DIST_BITLEN, empty_ctxt);
 
         /**
-         * INF is chosed so that it should be bigger than most values, but also
-         * does not overflow so that INF + (anything) ~= INF 
+         * INF must be chosen so that it should be bigger than most values, but also
+         * should not overflow, so that INF + (anything) ~= INF
+         * 
+         * max INF > sum(Wi + INF) =>
+         * max INF > m * INF + sum(Wi)
+         * assuming Wi = max(Wi) for every i,
+         * max INF > m * INF + m * max(Wi) =>
+         * max INF > m * (INF + max(Wi))
+         * assuming max(Wi) = INF,
+         * max INF > 2 * m * INF
+         * the maximum possible value for max INF is (1 << DIST_BITLEN) - 1 => 
+         * (1 << DIST_BITLEN) - 1 > 2 * m * INF =>
+         * *** INF ~= ((1 << (DIST_BITLEN - 1)) / m) - 1 and max(Wi) < INF (i = 1, ... m) ***
         **/
-        uint64_t INF = (((uint64_t)1 << 63) - 1) / 2;
+        uint64_t INF = (((uint64_t)1 << (DIST_BITLEN - 1)) / edges.size()) - 1;
         std::vector <helib::Ctxt> inf_enc_aux = ct_bin_enc(INF, DIST_BITLEN, ea, pk);
         const helib::CtPtrs_vectorCt INF_enc = helib::CtPtrs_vectorCt(inf_enc_aux);
 
