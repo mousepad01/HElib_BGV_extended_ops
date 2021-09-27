@@ -11,3 +11,4 @@ The following operations are implemented:
 * Sorting
 * Levenshtein distance 
 * Shortest Path for graph with encrypted edge weights
+* Encrypted bloom filter with "SIMD" plaintext isomorphism optimization utilization
