@@ -7,6 +7,8 @@ namespace heExtension {
 
     /**
      * Bloom filter with HElib-BGV encrypted bytes
+     * It makes use of SIMD packing to store multiple bits in a single ciphertext, rotating slots when necessary
+     * 
      * 
      * Advantages over a classic, "plaintext" bloom filter:
      * * The processing party does not learn the hash of a freshly added element
@@ -24,6 +26,9 @@ namespace heExtension {
     **/
     class BloomFilter {
 
+        helib::Ctxt CT_0;
+        helib::Ctxt QUERY_MASK;
+
     public:
 
         int hash_function_count;
@@ -36,7 +41,6 @@ namespace heExtension {
 
         /**
          * Constructor with custom parameters
-         * NOTE: filter_length will get exactly the value given, ignoring the SIMD ciphertext packing
         **/
         BloomFilter(int hash_function_count, int filter_length, helib::PubKey * pk, helib::EncryptedArray * ea);
 

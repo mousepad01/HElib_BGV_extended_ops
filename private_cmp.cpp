@@ -118,7 +118,7 @@ namespace heExtension{
         return result;
     }
 
-    static std::vector <helib::Ctxt> ct_bin_enc(long to_encode, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
+    std::vector <helib::Ctxt> ct_bin_enc(long to_encode, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
 
         helib::Ctxt empty(pk);
         std::vector <helib::Ctxt> ct_enc(bitlen, empty);
@@ -138,12 +138,11 @@ namespace heExtension{
         return ct_enc;
     }
 
-    static inline std::vector <helib::Ctxt> to_ctxt_arr(const helib::Ctxt & bit_to_encapsulate, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
+    std::vector <helib::Ctxt> to_ctxt_arr(const helib::Ctxt & bit_to_encapsulate, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
 
         std::vector <helib::Ctxt> converted = ct_bin_enc(0, bitlen, ea, pk);
         converted[0] = bit_to_encapsulate;
 
         return converted;
     }
-
 }

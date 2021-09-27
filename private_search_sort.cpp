@@ -2,34 +2,6 @@
 
 namespace heExtension{
 
-    static std::vector <helib::Ctxt> ct_bin_enc(long to_encode, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
-
-        helib::Ctxt empty(pk);
-        std::vector <helib::Ctxt> ct_enc(bitlen, empty);
-
-        int nslots = ea.size();
-
-        for(int b = 0; b < bitlen; b++){
-
-            std::vector <long> bit_enc(nslots);
-
-            for(int slot = 0; slot < nslots; slot++)
-                bit_enc[slot] = (to_encode >> b) & 0x01;
-
-            ea.encrypt(ct_enc[b], pk, bit_enc);
-        }
-
-        return ct_enc;
-    }
-
-    static inline std::vector <helib::Ctxt> to_ctxt_arr(const helib::Ctxt & bit_to_encapsulate, int bitlen, const helib::EncryptedArray & ea, const helib::PubKey & pk) {
-
-        std::vector <helib::Ctxt> converted = ct_bin_enc(0, bitlen, ea, pk);
-        converted[0] = bit_to_encapsulate;
-
-        return converted;
-    }
-
     std::vector <helib::Ctxt> lev_dist(std::vector <helib::CtPtrs_vectorCt> & fst, std::vector <helib::CtPtrs_vectorCt> & snd, const int DIST_BITLEN) {
 
         int n = fst.size();
