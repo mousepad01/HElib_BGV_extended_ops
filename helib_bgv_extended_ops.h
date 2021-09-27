@@ -64,6 +64,7 @@ namespace heExtended{
      * The edges are considered unidirectional (first -> second, cost)
      * The nodes are considered to be in the interval [0, node count - 1]; if they have different values, a (temporary) conversion is needed
      * NOTE: DIST_BITLEN parameter should indicate the maximul possible size of the resulting distance, not just the size of the edge weights
+     * NOTE: maximum supported value for the total distance is ((2^63 - 1 // 2) - 1) - it should be MANUALLY CHECKED
     **/
     std::vector <helib::Ctxt> shortest_path_cost(const std::vector <std::tuple <int, int, helib::CtPtrs_vectorCt>> & edges, const int node_cnt,
                                                     const helib::CtPtrs_vectorCt & src, const helib::CtPtrs_vectorCt & dst, const int DIST_BITLEN = 8);

@@ -389,7 +389,11 @@ namespace heExtended{
         helib::Ctxt empty_ctxt(pk);
         std::vector <helib::Ctxt> empty(DIST_BITLEN, empty_ctxt);
 
-        uint64_t INF = ((uint64_t)1 << 63) - 1;
+        /**
+         * INF is chosed so that it should be bigger than most values, but also
+         * does not overflow so that INF + (anything) ~= INF 
+        **/
+        uint64_t INF = (((uint64_t)1 << 63) - 1) / 2;
         std::vector <helib::Ctxt> inf_enc_aux = ct_bin_enc(INF, DIST_BITLEN, ea, pk);
         const helib::CtPtrs_vectorCt INF_enc = helib::CtPtrs_vectorCt(inf_enc_aux);
 
