@@ -2,6 +2,8 @@
 #define UTILS_H
 
 #include <vector>
+#include <functional>
+#include <string>
 
 #include <helib/helib.h>
 #include <helib/binaryArith.h>
