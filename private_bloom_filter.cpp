@@ -63,7 +63,7 @@ namespace heExtension {
     
     BloomFilter::BloomFilter(int hash_function_count, int bit_count, 
                             const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
-                            std::vector <std::function <std::vector <int>(const void *, size_t len)>> * hash_functions):
+                            std::vector <std::function <int(const void *, size_t len)>> * hash_functions):
                             hash_function_count(hash_function_count), pk(pk), ea(ea), context(context), 
                             hash_functions(hash_functions), filter(nullptr) {
 
@@ -188,13 +188,8 @@ namespace heExtension {
 
         std::vector <int> query_positions;
         
-        for(int i = 0; i < this->hash_function_count; i++){
-
-            std::vector <int> h_query_pos = this->hash_functions->at(i)(element, len);
-
-            for(int j = 0; j < h_query_pos.size(); j++)
-                h_query_pos.push_back(h_query_pos[j]);
-        }
+        for(int i = 0; i < this->hash_function_count; i++)
+            query_positions.push_back(this->hash_functions->at(i)(element, len));
 
         return query_positions;
     }
@@ -209,12 +204,14 @@ namespace heExtension {
 
         std::vector <helib::Ctxt> add_req_mask(filter_length, *CT_0);
 
-         for(int i = 0; i < this->hash_function_count; i++){
+        std::vector <int> element_h_positions;
 
-            std::vector <int> h_query_pos = this->hash_functions->at(i)(element, len);
+        for(int i = 0; i < this->hash_function_count; i++)
+            query_positions.push_back(this->hash_functions->at(i)(element, len));
 
-            //TODO divide et impera for add request mask generator
-        }
+        std::sort(element_h_positions.begin(), element_h_positions.end());
+
+        //TODO next
 
         return add_req_mask;
     }

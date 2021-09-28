@@ -85,7 +85,7 @@ namespace heExtension {
         /**
          * Used (mostly) client-side
         **/
-        std::vector <std::function <std::vector <int>(const void *, size_t len)>> * hash_functions;
+        std::vector <std::function <int(const void *, size_t len)>> * hash_functions;
 
         /**
          * SERVER-SIDE Constructor with custom parameters
@@ -104,7 +104,7 @@ namespace heExtension {
         **/
         BloomFilter(int hash_function_count, int bit_count, 
                     const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
-                    std::vector <std::function <std::vector <int>(const void *, size_t len)>> * hash_functions);
+                    std::vector <std::function <int(const void *, size_t len)>> * hash_functions);
 
         /**
          * Destructor
