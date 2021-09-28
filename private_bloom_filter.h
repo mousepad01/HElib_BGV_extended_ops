@@ -67,15 +67,23 @@ namespace heExtension {
         **/
         helib::Ctxt __query_for_element(const std::vector <int> positions_to_query, const int pos_offset, const int pos_len) const;
 
-        /**
-         * TODO Auxiliary method for implementing divide-et-impera add mask creation
-        **/
-        helib::Ctxt __create_add_mask() const;
-
     public:
 
+        /**
+         * Number of hashing functions
+        **/
         int hash_function_count;
+
+        /**
+         * Bloom filter length in ciphertexts
+        **/
         int filter_length;
+
+        /**
+         * Bloom filter length in (encrypted) bits
+         * (Bloom filter length in the traditional sense)
+        **/
+        int filter_bit_length;
 
         /**
          * Used server-side 
@@ -150,7 +158,7 @@ namespace heExtension {
         std::vector <int> create_query(const void * element, size_t len);
 
         /**
-         * TODO Create an add request argument
+         * Create an add request argument
         **/
         std::vector <helib::Ctxt> create_add_mask(const void * element, size_t len);
 
