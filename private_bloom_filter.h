@@ -7,8 +7,7 @@ namespace heExtension {
 
     /**
      * Bloom filter with HElib-BGV encrypted bytes
-     * It makes use of SIMD packing to store multiple bits in a single ciphertext, rotating slots when necessary
-     * 
+     * It makes use of SIMD packing to store multiple bits in a single ciphertext, shifting slots when necessary
      * 
      * Advantages over a classic, "plaintext" bloom filter:
      * * The processing party does not learn the hash of a freshly added element
@@ -26,28 +25,56 @@ namespace heExtension {
     **/
     class BloomFilter {
 
-        helib::Ctxt CT_0;
-        helib::Ctxt QUERY_MASK;
+        /**
+         * Per-object constants stored here to avoid multiple initializations
+        **/
+
+        /**
+         * 0 on every slot
+        **/
+        helib::Ctxt * CT_0;
+
+        /**
+         * 1 on the last slot (from left to right)
+        **/
+        helib::Ctxt * QUERY_MASK;
+
+        /**
+         * number of slots in a plaintext
+        **/
+        long N_SLOTS;
+
+        /**
+         * information for diverse operations
+        **/
+        const helib::EncryptedArray * const ea;
+
+        /**
+         * public key
+        **/
+        const helib::PubKey * const pk;
+
+        /**
+         * Auxiliary method for implementing divide-et-impera query
+        **/
+        helib::Ctxt __query_for_element(const std::vector <int> positions_to_query, const int pos_offset, const int pos_len);
 
     public:
 
         int hash_function_count;
         int filter_length;
 
-        std::vector <helib::Ctxt> filter;
-
-        helib::PubKey * pk;
-        helib::EncryptedArray * ea;
+        std::vector <helib::Ctxt> * filter;
 
         /**
          * Constructor with custom parameters
         **/
-        BloomFilter(int hash_function_count, int filter_length, helib::PubKey * pk, helib::EncryptedArray * ea);
+        BloomFilter(int hash_function_count, int filter_length, const helib::PubKey * pk, const helib::EncryptedArray * ea);
 
         /**
          * Constructor with automatic size selection
         **/
-        BloomFilter(int expected_element_count, double expected_false_positive_rate, int hash_function_count, helib::PubKey * pk, helib::EncryptedArray * ea);
+        BloomFilter(int expected_element_count, double expected_false_positive_rate, int hash_function_count, const helib::PubKey * pk, const helib::EncryptedArray * ea);
 
         /**
          * Trivial destructor
@@ -66,13 +93,19 @@ namespace heExtension {
          * (Equivalent to union with a filter containing only that element)
          * Time complexity (excluding HE operation overhead): O(filter length) 
         **/
-        void add_element(const std::vector <helib::Ctxt> to_add);
+        void add_element(const std::vector <helib::Ctxt> * to_add);
 
         /**
          * Union of two filters
          * TIme complexity (excluding HE operation overhead): O(filter length)
         **/
         void filter_union(const BloomFilter & other);
+
+        /**
+         * Intersection of two filters
+         * TIme complexity (excluding HE operation overhead): O(filter length)
+        **/
+        void filter_intersection(const BloomFilter & other);
 
         /**
          * Query for an element in the filter
