@@ -191,7 +191,7 @@ namespace heExtension {
         std::vector <uint32_t> query_positions;
         
         for(uint32_t i = 0; i < this->hash_function_count; i++)
-            query_positions.push_back(this->hash_functions->at(i)(element, len));
+            query_positions.push_back(this->hash_functions->at(i)(element, len) % this->filter_bit_length);
 
         return query_positions;
     }
@@ -212,6 +212,7 @@ namespace heExtension {
         for(uint32_t i = 0; i < this->hash_function_count; i++){
 
             uint32_t pos = this->hash_functions->at(i)(element, len);
+            pos %= this->filter_bit_length;
             
             uint32_t mask_i = pos / this->N_SLOTS;
             uint32_t mask_offset = (this->N_SLOTS - 1) - (pos % this->N_SLOTS);

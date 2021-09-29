@@ -1,5 +1,7 @@
 #include <iostream>
 #include <type_traits>
+#include <cassert>
+#include <vector>
 
 /**
  * For this test, murmur3 hash function is used, with different seeds to emulate multiple hash functions
@@ -14,10 +16,13 @@
  * https://www.codeproject.com/Articles/857354/Compile-Time-Loops-with-Cplusplus-Creating-a-Gener
 **/
 
-template <uint32_t HASH_FUNCTION_COUNT, uint32_t ELEMENT_COUNT>
+template <uint32_t HASH_FUNCTION_COUNT>
 class TestBloomFilter{
 
     const uint32_t RND_CNT;
+    const uint32_t QUERY_CNT;
+
+    const uint32_t ELEMENT_COUNT;
     const double FALSE_POSITIVE_RATE;
 
     long p;
@@ -49,12 +54,13 @@ class TestBloomFilter{
         0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 };
 
-    static uint32_t murmur3_wrap(const void * element, size_t len, uint32_t seed, uint32_t element_count) {
+    // does NOT return hash MOD filter bit count, this operation is done inside the filter class
+    static uint32_t murmur3_wrap(const void * element, size_t len, uint32_t seed) {
 
         uint32_t hash[4];
         MurmurHash3_x64_128(element, len, seed, (void *)hash);
 
-        return hash[0] % element_count;
+        return hash[0];
     }
 
     void hash_function_generator(std::integral_constant <int, HASH_FUNCTION_COUNT>) {}
@@ -63,17 +69,19 @@ class TestBloomFilter{
     void hash_function_generator(std::integral_constant <int, seed_index> = std::integral_constant <int, 0>()){
 
         this->hash_functions.push_back(std::function <uint32_t(const void *, size_t len)> ([](const void * element, size_t len) {
-                return murmur3_wrap(element, len, SEED[seed_index], ELEMENT_COUNT);
+                return murmur3_wrap(element, len, SEED[seed_index]);
         }));
 
         hash_function_generator(std::integral_constant <int, seed_index + 1>());
     }
 
     TestBloomFilter(const uint32_t RND_CNT, const double FALSE_POSITIVE_RATE, 
+                    const uint32_t QUERY_CNT, const uint32_t ELEMENT_COUNT,
                     long p, long m, long r, long bits, long c,
                     std::vector<long> mvec, std::vector<long> gens, std::vector<long> ords, 
                     helib::Context * context, const helib::SecKey & sk, const helib::EncryptedArray & ea): 
-                    RND_CNT(RND_CNT), FALSE_POSITIVE_RATE(FALSE_POSITIVE_RATE),
+                    RND_CNT(RND_CNT), FALSE_POSITIVE_RATE(FALSE_POSITIVE_RATE), 
+                    QUERY_CNT(QUERY_CNT), ELEMENT_COUNT(ELEMENT_COUNT),
                     p(p), m(m), r(r), c(c), bits(bits), mvec(mvec), gens(gens), ords(ords), 
                     context(context), sk(sk), ea(ea), pk(sk) {
 
@@ -86,7 +94,8 @@ class TestBloomFilter{
 
 public:
 
-    static TestBloomFilter * makeTest(const uint32_t RND_CNT, const double FALSE_POSITIVE_RATE) {
+    static TestBloomFilter * makeTest(const uint32_t RND_CNT, const double FALSE_POSITIVE_RATE, 
+                                        const uint32_t QUERY_CNT, const uint32_t ELEMENT_COUNT) {
         
         long p = 2;
         long m = 4095;
@@ -114,7 +123,7 @@ public:
         sk->GenSecKey();
         sk->genRecryptData();
 
-        TestBloomFilter * test = new TestBloomFilter(RND_CNT, FALSE_POSITIVE_RATE, 
+        TestBloomFilter * test = new TestBloomFilter(RND_CNT, FALSE_POSITIVE_RATE, QUERY_CNT, ELEMENT_COUNT,
                                                         p, m, r, bits, c, mvec, gens, ords, 
                                                         context, *sk, context->getEA());
 
@@ -131,7 +140,7 @@ Bootstrapping and key-switching data is also generated but most likely not neede
         return test;
     }
 
-    ~TestBloomFilter(){
+    ~TestBloomFilter() {
 
         delete &sk;
         delete context;
@@ -139,11 +148,73 @@ Bootstrapping and key-switching data is also generated but most likely not neede
 
     void go() {
 
-        std::cout << "Executing small test with " << this->RND_CNT << " rounds...\n";
+        std::cout << "Executing test with " << RND_CNT << " rounds...\n";
+
+        heExtension::BloomFilter server(ELEMENT_COUNT, FALSE_POSITIVE_RATE, HASH_FUNCTION_COUNT,
+                                        pk, ea, *context);
+
+        heExtension::BloomFilter client(HASH_FUNCTION_COUNT, server.filter_bit_length,
+                                        pk, ea, *context, &hash_functions);
+
+        std::cout << "\n\nElements will be integers, taken from a range of [0, 2 * element count] (empirical range size)" << 
+         "and the validity / false positive rate of the queries\n" << 
+         "will be tested against an array that indicates thether that element is truly in the set or not\n";
+
+        const uint32_t TOTAL_ELEMENT_COUNT = ELEMENT_COUNT * 2;
+
+        bool set[TOTAL_ELEMENT_COUNT];
+
+        /**
+         * Generate and add the elements
+        **/
+        for(int i = 0; i < ELEMENT_COUNT; i++){
+
+            uint32_t rnd_element = rand() % TOTAL_ELEMENT_COUNT;
+            while(set[rnd_element])
+                rnd_element = rand() % TOTAL_ELEMENT_COUNT;
+
+            set[rnd_element] = true;
+
+            std::vector <helib::Ctxt> add_mask = client.create_add_mask((void *)&rnd_element, 4);
+            server.add_element(&add_mask);
+        }
+
+        std::cout << "Elements generated\n\nStarting querying...\n";
+
+        uint32_t true_positives = 0;
+        uint32_t false_positives = 0;
+
+        /**
+         * Query for elements
+        **/
+        for(int i = 0; i < QUERY_CNT; i++){
+
+            uint32_t rnd_query_element = rand() % TOTAL_ELEMENT_COUNT;
+
+            std::vector <uint32_t> query = client.create_query((void *)&rnd_query_element, 4);
+            helib::Ctxt query_enc_res = server.query_for_element(query);
+
+            bool query_res = client.parse_query_response(query_enc_res, this->sk);
+
+            if((set[rnd_query_element] == true) && (query_res == false))
+                throw std::runtime_error("False negative detected");
+
+            if((set[rnd_query_element] == true) && (query_res == true))
+                true_positives += 1;
+
+            if((set[rnd_query_element] == false) && (query_res == true))
+                false_positives += 1;
+        }
+
+        std::cout << "\n\nQueries finished\nStats:\n" <<
+                    "Number of queries: " << QUERY_CNT << '\n' << 
+                    "Rate of false positives: " << false_positives / (false_positives + true_positives) << '\n';
+
+        //TODO add timing
+
+        std::cout << "\n\nDone.\n";
     }
 };
-
-
 
 int main(){
 
@@ -165,14 +236,14 @@ small test [1] / big test [2] ?\n";
 
     if(test_type == 1){
 
-        TestBloomFilter <10, 100> * test = TestBloomFilter<10, 100>::makeTest(test_round_cnt, 0.1);
+        TestBloomFilter <10> * test = TestBloomFilter<10>::makeTest(100, test_round_cnt, 0.1, 5);
         test->go();
 
         delete test;
     }
     else{
 
-        TestBloomFilter <6, 10000> * test = TestBloomFilter<6, 10000>::makeTest(test_round_cnt, 0.1);
+        TestBloomFilter <6> * test = TestBloomFilter<6>::makeTest(10000, test_round_cnt, 0.1, 100);
         test->go();
 
         delete test;

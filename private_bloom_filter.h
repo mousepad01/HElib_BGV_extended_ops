@@ -90,6 +90,8 @@ namespace heExtension {
 
         /**
          * Used (mostly) client-side
+         * NOTE: the hash functions do NOT need to return the result MOD filter size, 
+         *       this operation is done inside the filter class
         **/
         std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions;
 
