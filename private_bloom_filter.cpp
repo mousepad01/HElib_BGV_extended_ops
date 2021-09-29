@@ -3,7 +3,7 @@
 
 namespace heExtension {
 
-    BloomFilter::BloomFilter(int hash_function_count, int bit_count, 
+    BloomFilter::BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                             const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context): 
                             hash_function_count(hash_function_count), filter_bit_length(bit_count),
                             pk(pk), ea(ea), context(context), hash_functions(nullptr) {
@@ -32,7 +32,7 @@ namespace heExtension {
         ea.encrypt(*QUERY_MASK, pk, aux_bits);
     }
 
-    BloomFilter::BloomFilter(int expected_element_count, double expected_false_positive_rate, int hash_function_count, 
+    BloomFilter::BloomFilter(uint32_t expected_element_count, double expected_false_positive_rate, uint32_t hash_function_count, 
                             const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context): 
                             hash_function_count(hash_function_count), pk(pk), ea(ea), context(context), hash_functions(nullptr) {
 
@@ -62,13 +62,13 @@ namespace heExtension {
         ea.encrypt(*QUERY_MASK, pk, aux_bits);
     }
     
-    BloomFilter::BloomFilter(int hash_function_count, int bit_count, 
+    BloomFilter::BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                             const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
-                            std::vector <std::function <int(const void *, size_t len)>> * hash_functions):
+                            std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions):
                             hash_function_count(hash_function_count), filter_bit_length(bit_count),
                             pk(pk), ea(ea), context(context), 
                             hash_functions(hash_functions), filter(nullptr) {
-
+        
         if(context.isCKKS())
             throw new std::invalid_argument("The encryption scheme must be BGV (it appears to be CKKS)");
         
@@ -113,7 +113,7 @@ namespace heExtension {
         
         // A OR B = (A XOR B) XOR (A AND B)
 
-        for(int i = 0; i < to_add->size(); i++) {
+        for(uint32_t i = 0; i < to_add->size(); i++) {
 
             this->filter->at(i) += to_add->at(i);
 
@@ -143,16 +143,16 @@ namespace heExtension {
         if(other.context != this->context)
             throw std::invalid_argument("filter BGV contexts are different");
 
-        for(int i = 0; i < other.filter->size(); i++) 
+        for(uint32_t i = 0; i < other.filter->size(); i++) 
             this->filter->at(i) *= other.filter->at(i);
     }
 
-    helib::Ctxt BloomFilter::__query_for_element(std::vector <int> positions_to_query, const int pos_offset, const int pos_len) const {
+    helib::Ctxt BloomFilter::__query_for_element(std::vector <uint32_t> positions_to_query, const uint32_t pos_offset, const uint32_t pos_len) const {
 
         if(pos_len == 1){
 
-            int ctxt_i = positions_to_query[pos_offset] / this->N_SLOTS;
-            int ctxt_offset = (this->N_SLOTS - 1) - (positions_to_query[pos_offset] % this->N_SLOTS);
+            uint32_t ctxt_i = positions_to_query[pos_offset] / this->N_SLOTS;
+            uint32_t ctxt_offset = (this->N_SLOTS - 1) - (positions_to_query[pos_offset] % this->N_SLOTS);
             
             helib::Ctxt ctxt_cpy = this->filter->at(ctxt_i);
             this->ea.shift(ctxt_cpy, ctxt_offset);
@@ -170,7 +170,7 @@ namespace heExtension {
         }
     }
 
-    helib::Ctxt BloomFilter::query_for_element(std::vector <int> positions_to_query) const {
+    helib::Ctxt BloomFilter::query_for_element(std::vector <uint32_t> positions_to_query) const {
 
         if(this->filter == nullptr)
             throw std::runtime_error("filter elements uninitialized");
@@ -180,7 +180,7 @@ namespace heExtension {
         return this->__query_for_element(positions_to_query, 0, positions_to_query.size());
     }
 
-    std::vector <int> BloomFilter::create_query(const void * element, size_t len) {
+    std::vector <uint32_t> BloomFilter::create_query(const void * element, size_t len) {
         
         if(this->hash_functions == nullptr)
             throw std::runtime_error("hash functions uninitialized");
@@ -188,9 +188,9 @@ namespace heExtension {
         if(this->hash_functions->size() != this->hash_function_count)
             throw std::runtime_error("not enough hash functions");
 
-        std::vector <int> query_positions;
+        std::vector <uint32_t> query_positions;
         
-        for(int i = 0; i < this->hash_function_count; i++)
+        for(uint32_t i = 0; i < this->hash_function_count; i++)
             query_positions.push_back(this->hash_functions->at(i)(element, len));
 
         return query_positions;
@@ -209,18 +209,18 @@ namespace heExtension {
         std::vector <std::vector <long>> ptxt_add_mask(this->filter_length, std::vector <long>(this->N_SLOTS, 0));
         std::vector <bool> only_0s(true, this->filter_length);
 
-        for(int i = 0; i < this->hash_function_count; i++){
+        for(uint32_t i = 0; i < this->hash_function_count; i++){
 
-            int pos = this->hash_functions->at(i)(element, len);
+            uint32_t pos = this->hash_functions->at(i)(element, len);
             
-            int mask_i = pos / this->N_SLOTS;
-            int mask_offset = (this->N_SLOTS - 1) - (pos % this->N_SLOTS);
+            uint32_t mask_i = pos / this->N_SLOTS;
+            uint32_t mask_offset = (this->N_SLOTS - 1) - (pos % this->N_SLOTS);
 
             ptxt_add_mask[mask_i][mask_offset] = 1;
             only_0s[mask_i] = false;
         }
 
-        for(int i = 0; i < this->filter_length; i++)
+        for(uint32_t i = 0; i < this->filter_length; i++)
             if(!only_0s[i])
                 this->ea.encrypt(ctxt_add_mask[i], this->pk, ptxt_add_mask[i]);
 

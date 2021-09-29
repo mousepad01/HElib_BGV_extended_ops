@@ -5,8 +5,6 @@
 
 namespace heExtension {
 
-    class BloomFilterClient;
-
     /**
      * Bloom filter with HElib-BGV encrypted bytes
      * It makes use of SIMD packing to store multiple bits in a single ciphertext, shifting slots when necessary
@@ -65,25 +63,25 @@ namespace heExtension {
         /**
          * Auxiliary method for implementing divide-et-impera query exeuction
         **/
-        helib::Ctxt __query_for_element(const std::vector <int> positions_to_query, const int pos_offset, const int pos_len) const;
+        helib::Ctxt __query_for_element(const std::vector <uint32_t> positions_to_query, const uint32_t pos_offset, const uint32_t pos_len) const;
 
     public:
 
         /**
          * Number of hashing functions
         **/
-        int hash_function_count;
+        uint32_t hash_function_count;
 
         /**
          * Bloom filter length in ciphertexts
         **/
-        int filter_length;
+        uint32_t filter_length;
 
         /**
          * Bloom filter length in (encrypted) bits
          * (Bloom filter length in the traditional sense)
         **/
-        int filter_bit_length;
+        uint32_t filter_bit_length;
 
         /**
          * Used server-side 
@@ -93,26 +91,26 @@ namespace heExtension {
         /**
          * Used (mostly) client-side
         **/
-        std::vector <std::function <int(const void *, size_t len)>> * hash_functions;
+        std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions;
 
         /**
          * SERVER-SIDE Constructor with custom parameters
         **/
-        BloomFilter(int hash_function_count, int bit_count, 
+        BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                     const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context);
 
         /**
          * SERVER-SIDE Constructor with automatic size selection
         **/
-        BloomFilter(int expected_element_count, double expected_false_positive_rate, int hash_function_count, 
+        BloomFilter(uint32_t expected_element_count, double expected_false_positive_rate, uint32_t hash_function_count, 
                     const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context);
         
         /**
          * CLIENT-SIDE Constructor with manual hashing function selection
         **/
-        BloomFilter(int hash_function_count, int bit_count, 
+        BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                     const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
-                    std::vector <std::function <int(const void *, size_t len)>> * hash_functions);
+                    std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions);
 
         /**
          * Destructor
@@ -150,12 +148,12 @@ namespace heExtension {
          * The input is a vector of positions to be considered when querying
          * Time complexity (excluding HE operation overhead): O(number of positions to query)
         **/
-        helib::Ctxt query_for_element(std::vector <int> positions_to_query) const;
+        helib::Ctxt query_for_element(std::vector <uint32_t> positions_to_query) const;
 
         /**
          * Create a query argument
         **/
-        std::vector <int> create_query(const void * element, size_t len);
+        std::vector <uint32_t> create_query(const void * element, size_t len);
 
         /**
          * Create an add request argument
