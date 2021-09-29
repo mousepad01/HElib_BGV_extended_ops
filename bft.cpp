@@ -174,7 +174,7 @@ Bootstrapping and key-switching data is also generated but most likely not neede
                 rnd_element = rand() % TOTAL_ELEMENT_COUNT;
 
             set[rnd_element] = true;
-
+ 
             std::vector <helib::Ctxt> add_mask = client.create_add_mask((void *)&rnd_element, 4);
             server.add_element(&add_mask);
         }
@@ -236,14 +236,14 @@ small test [1] / big test [2] ?\n";
 
     if(test_type == 1){
 
-        TestBloomFilter <10> * test = TestBloomFilter<10>::makeTest(100, test_round_cnt, 0.1, 5);
+        TestBloomFilter <10> * test = TestBloomFilter<10>::makeTest(test_round_cnt, 0.1, 5, 100); //TODO 0.001
         test->go();
 
         delete test;
     }
     else{
 
-        TestBloomFilter <6> * test = TestBloomFilter<6>::makeTest(10000, test_round_cnt, 0.1, 100);
+        TestBloomFilter <6> * test = TestBloomFilter<6>::makeTest(test_round_cnt, 0.1, 100, 10000); //TODO 0.001
         test->go();
 
         delete test;

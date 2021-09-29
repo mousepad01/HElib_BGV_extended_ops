@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <cmath>
 
 #include <helib/helib.h>
 #include <helib/binaryArith.h>

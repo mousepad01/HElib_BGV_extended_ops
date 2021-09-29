@@ -42,7 +42,7 @@ namespace heExtension {
         if(context.getP() != 2)
             throw new std::invalid_argument("Plaintext modulus p != 2");
 
-        this->filter_bit_length = ceil(expected_element_count * log(-expected_false_positive_rate) / (log(2) * log(2)));
+        this->filter_bit_length = ceil((expected_element_count * log(expected_false_positive_rate)) / log(1 / pow(2, log(2))));
 
         this->N_SLOTS = ea.size();
 
