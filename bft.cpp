@@ -99,7 +99,7 @@ public:
         std::vector<long> ords = {6, 4, 6};
 
         helib::Context * context = helib::ContextBuilder<helib::BGV>()
-                                    .m(2)
+                                    .m(m)
                                     .p(p)
                                     .r(r)
                                     .gens(gens)
@@ -118,7 +118,7 @@ public:
                                                         p, m, r, bits, c, mvec, gens, ords, 
                                                         context, *sk, context->getEA());
 
-        std::cout << "Parameter selection for HElib-BGV\n \
+        std::cout << "\n\nParameter selection for HElib-BGV\n \
 (note that from the point of view of the bloom filter utilisation,\n \
 only the addition to the filter and query decryption require client-side cryptograhpic operations,\n \
 the query request itself doest not need (and cannot be) encrypted, \n \
