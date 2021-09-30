@@ -26,6 +26,8 @@ namespace heExtension {
     **/
     class BloomFilter {
 
+    public:
+
         /**
          * Per-object constants stored here to avoid multiple initializations
         **/

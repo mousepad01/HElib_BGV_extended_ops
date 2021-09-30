@@ -104,10 +104,9 @@ namespace heExtension {
         if(this->filter != nullptr)
             delete this->filter;
 
-        if(this->hash_functions != nullptr)
-            delete this->hash_functions;
+        // hash_functions are not created here, so they are not deleted here
     }
-
+    
     void BloomFilter::add_element(const std::vector <helib::Ctxt> * to_add) {
 
         if(this->filter == nullptr)
@@ -120,11 +119,10 @@ namespace heExtension {
 
         for(uint32_t i = 0; i < to_add->size(); i++) {
 
+            helib::Ctxt aux(this->filter->at(i));
+
             this->filter->at(i) += to_add->at(i);
-
-            helib::Ctxt aux = this->filter->at(i);
             aux *= to_add->at(i);
-
             this->filter->at(i) += aux;
 
             if(this->filter->at(i).bitCapacity() < 150)
@@ -165,10 +163,12 @@ namespace heExtension {
         if(pos_len == 1){
 
             uint32_t ctxt_i = positions_to_query[pos_offset] / this->N_SLOTS;
-            uint32_t ctxt_offset = (this->N_SLOTS - 1) - (positions_to_query[pos_offset] % this->N_SLOTS);
+            //uint32_t ctxt_offset = (this->N_SLOTS - 1) - (positions_to_query[pos_offset] % this->N_SLOTS);
             
+            //std::cout << "ctxt_offset: " << ctxt_offset << '\n';
+
             helib::Ctxt ctxt_cpy = this->filter->at(ctxt_i);
-            this->ea.shift(ctxt_cpy, ctxt_offset);
+            this->ea.shift(ctxt_cpy, positions_to_query[pos_offset] % this->N_SLOTS);
 
             ctxt_cpy *= *this->QUERY_MASK;
 
@@ -200,7 +200,7 @@ namespace heExtension {
 
         return this->__query_for_element(positions_to_query, 0, positions_to_query.size());
     }
-
+    
     std::vector <uint32_t> BloomFilter::create_query(const void * element, size_t len) {
         
         if(this->hash_functions == nullptr)
@@ -211,12 +211,18 @@ namespace heExtension {
 
         std::vector <uint32_t> query_positions;
         
-        for(uint32_t i = 0; i < this->hash_function_count; i++)
-            query_positions.push_back(this->hash_functions->at(i)(element, len) % this->filter_bit_length);
+        for(uint32_t i = 0; i < this->hash_function_count; i++){
 
+            //uint32_t hash = this->hash_functions->at(i)(element, len) % this->filter_bit_length;
+            //std::cout << "hash offset at query: " << (this->N_SLOTS - 1) - (hash % this->N_SLOTS) << ", ";
+
+            query_positions.push_back(this->hash_functions->at(i)(element, len) % this->filter_bit_length);
+        }
+        //std::cout << '\n';
+            
         return query_positions;
     }
-
+    
     std::vector <helib::Ctxt> BloomFilter::create_add_mask(const void * element, size_t len) {
         
         if(this->hash_functions == nullptr)
@@ -237,6 +243,8 @@ namespace heExtension {
             
             uint32_t mask_i = pos / this->N_SLOTS;
             uint32_t mask_offset = (this->N_SLOTS - 1) - (pos % this->N_SLOTS);
+
+            //std::cout << "mask_offset: " << mask_offset << ",\n";
 
             ptxt_add_mask[mask_i][mask_offset] = 1;
             only_0s[mask_i] = false;
