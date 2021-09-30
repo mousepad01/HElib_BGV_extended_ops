@@ -16,6 +16,8 @@
  * https://www.codeproject.com/Articles/857354/Compile-Time-Loops-with-Cplusplus-Creating-a-Gener
 **/
 
+#define ROTL32(x, r) (x << r) | (x >> (32 - r))
+
 template <uint32_t HASH_FUNCTION_COUNT>
 class TestBloomFilter{
 
@@ -89,6 +91,8 @@ class TestBloomFilter{
 
         this->nslots = this->ea.size();
 
+        buildUnpackSlotEncoding(this->unpackSlotEncoding, ea);
+
         this->hash_function_generator();
     }
 
@@ -117,11 +121,16 @@ public:
                                     .c(c)
                                     .bootstrappable(true)
                                     .mvec(mvec)
+                                    .thickboot()
                                     .buildPtr();   
 
         helib::SecKey * sk = new helib::SecKey(*context);
         sk->GenSecKey();
+
         sk->genRecryptData();
+        //helib::addAllMatrices(*sk);
+        helib::addSome1DMatrices(*sk);
+        helib::addFrbMatrices(*sk);
 
         TestBloomFilter * test = new TestBloomFilter(RND_CNT, FALSE_POSITIVE_RATE, QUERY_CNT, ELEMENT_COUNT,
                                                         p, m, r, bits, c, mvec, gens, ords, 
@@ -151,14 +160,14 @@ Bootstrapping and key-switching data is also generated but most likely not neede
         std::cout << "Executing test with " << RND_CNT << " rounds...\n";
 
         heExtension::BloomFilter server(ELEMENT_COUNT, FALSE_POSITIVE_RATE, HASH_FUNCTION_COUNT,
-                                        pk, ea, *context);
+                                        pk, ea, *context, this->unpackSlotEncoding);
 
         heExtension::BloomFilter client(HASH_FUNCTION_COUNT, server.filter_bit_length,
-                                        pk, ea, *context, &hash_functions);
+                                        pk, ea, *context, this->unpackSlotEncoding, &hash_functions);
 
         std::cout << "\n\nElements will be integers, taken from a range of [0, 2 * element count] (empirical range size)" << 
          "and the validity / false positive rate of the queries\n" << 
-         "will be tested against an array that indicates thether that element is truly in the set or not\n";
+         "will be tested against an array that indicates whether that element is truly in the set or not\n";
 
         const uint32_t TOTAL_ELEMENT_COUNT = ELEMENT_COUNT * 2;
 
@@ -166,18 +175,34 @@ Bootstrapping and key-switching data is also generated but most likely not neede
 
         /**
          * Generate and add the elements
+         * The first ELEMENT_COUNT bits will be marked, 
+         * then randomly permuted inside the interval [0, TOTAL_ELEMENT_COUNT],
+         * then, each element corresponding to a set bit will be added inside the filter
         **/
-        for(int i = 0; i < ELEMENT_COUNT; i++){
 
-            uint32_t rnd_element = rand() % TOTAL_ELEMENT_COUNT;
-            while(set[rnd_element])
-                rnd_element = rand() % TOTAL_ELEMENT_COUNT;
+        srand(time(0));
+        srand(rand());
 
-            set[rnd_element] = true;
- 
-            std::vector <helib::Ctxt> add_mask = client.create_add_mask((void *)&rnd_element, 4);
-            server.add_element(&add_mask);
+        for(int i = 0; i < ELEMENT_COUNT; i++)
+            set[i] = true;
+
+        for(int i = ELEMENT_COUNT; i < TOTAL_ELEMENT_COUNT; i++)
+            set[i] = false;
+
+        for(int i = 0; i < TOTAL_ELEMENT_COUNT - 2; i++){
+
+            uint32_t j = i + rand() % (TOTAL_ELEMENT_COUNT - i);
+			std::swap(set[i], set[j]);
         }
+
+        for(int i = 0; i < TOTAL_ELEMENT_COUNT; i++)
+            if(set[i]){
+
+                std::vector <helib::Ctxt> add_mask = client.create_add_mask((void *)&i, 4);
+                server.add_element(&add_mask);
+
+                std::cout << "added element " << i <<  '\n';
+            }
 
         std::cout << "Elements generated\n\nStarting querying...\n";
 
@@ -186,14 +211,16 @@ Bootstrapping and key-switching data is also generated but most likely not neede
 
         /**
          * Query for elements
+         * (Also trying to shuffle the generated rand)
         **/
+        uint32_t rnd_query_element = rand() % TOTAL_ELEMENT_COUNT;
+
         for(int i = 0; i < QUERY_CNT; i++){
 
-            uint32_t rnd_query_element = rand() % TOTAL_ELEMENT_COUNT;
+            rnd_query_element = rand() % TOTAL_ELEMENT_COUNT;
 
             std::vector <uint32_t> query = client.create_query((void *)&rnd_query_element, 4);
             helib::Ctxt query_enc_res = server.query_for_element(query);
-
             bool query_res = client.parse_query_response(query_enc_res, this->sk);
 
             if((set[rnd_query_element] == true) && (query_res == false))
@@ -210,8 +237,6 @@ Bootstrapping and key-switching data is also generated but most likely not neede
                     "Number of queries: " << QUERY_CNT << '\n' << 
                     "Rate of false positives: " << false_positives / (false_positives + true_positives) << '\n';
 
-        //TODO add timing
-
         std::cout << "\n\nDone.\n";
     }
 };
@@ -225,8 +250,8 @@ Both tests select a number of random elements, insert them in an encrypted set r
 and then execute queries with other random elements, that can return either\n \
 \"DEFINETLY NOT IN THE SET\" or \"PROBABLY IN THE SET\"\n \
 Both tests should provide the false positive probability up to ~0.1%\n \
-The small test filter contains 100 elements and executes 5 queries\n \
-The big test filter contains 10000 elements and executes 100 queries\n \
+The small test filter contains 20 elements and executes 5 queries\n \
+The big test filter contains 100 elements and executes 20 queries\n \
 small test [1] / big test [2] ?\n";
     std::cin >> test_type;
 
@@ -236,14 +261,14 @@ small test [1] / big test [2] ?\n";
 
     if(test_type == 1){
 
-        TestBloomFilter <10> * test = TestBloomFilter<10>::makeTest(test_round_cnt, 0.1, 5, 100); //TODO 0.001
+        TestBloomFilter <3> * test = TestBloomFilter<3>::makeTest(test_round_cnt, 0.001, 5, 20); 
         test->go();
 
         delete test;
     }
     else{
 
-        TestBloomFilter <6> * test = TestBloomFilter<6>::makeTest(test_round_cnt, 0.1, 100, 10000); //TODO 0.001
+        TestBloomFilter <10> * test = TestBloomFilter<10>::makeTest(test_round_cnt, 0.001, 20, 100); 
         test->go();
 
         delete test;

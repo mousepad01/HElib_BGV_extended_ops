@@ -61,6 +61,11 @@ namespace heExtension {
         const helib::Context & context;
 
         /**
+         * UNpacking constants
+        **/
+        std::vector<helib::zzX> unpackSlotEncoding;
+
+        /**
          * Auxiliary method for implementing divide-et-impera query exeuction
         **/
         helib::Ctxt __query_for_element(const std::vector <uint32_t> positions_to_query, const uint32_t pos_offset, const uint32_t pos_len) const;
@@ -99,19 +104,22 @@ namespace heExtension {
          * SERVER-SIDE Constructor with custom parameters
         **/
         BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
-                    const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context);
+                    const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                    std::vector <helib::zzX> unpackSlotEncoding);
 
         /**
          * SERVER-SIDE Constructor with automatic size selection
         **/
         BloomFilter(uint32_t expected_element_count, double expected_false_positive_rate, uint32_t hash_function_count, 
-                    const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context);
+                    const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                    std::vector <helib::zzX> unpackSlotEncoding);
         
         /**
          * CLIENT-SIDE Constructor with manual hashing function selection
         **/
         BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                     const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                    std::vector <helib::zzX> unpackSlotEncoding,
                     std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions);
 
         /**

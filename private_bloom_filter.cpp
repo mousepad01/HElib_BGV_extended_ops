@@ -4,9 +4,11 @@
 namespace heExtension {
 
     BloomFilter::BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
-                            const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context): 
+                            const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                            std::vector<helib::zzX> unpackSlotEncoding): 
                             hash_function_count(hash_function_count), filter_bit_length(bit_count),
-                            pk(pk), ea(ea), context(context), hash_functions(nullptr) {
+                            pk(pk), ea(ea), context(context), unpackSlotEncoding(unpackSlotEncoding),
+                            hash_functions(nullptr) {
 
         if(context.isCKKS())
             throw new std::invalid_argument("The encryption scheme must be BGV (it appears to be CKKS)");
@@ -33,8 +35,10 @@ namespace heExtension {
     }
 
     BloomFilter::BloomFilter(uint32_t expected_element_count, double expected_false_positive_rate, uint32_t hash_function_count, 
-                            const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context): 
-                            hash_function_count(hash_function_count), pk(pk), ea(ea), context(context), hash_functions(nullptr) {
+                            const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                            std::vector<helib::zzX> unpackSlotEncoding): 
+                            hash_function_count(hash_function_count), pk(pk), ea(ea), context(context), 
+                            unpackSlotEncoding(unpackSlotEncoding), hash_functions(nullptr) {
 
         if(context.isCKKS())
             throw new std::invalid_argument("The encryption scheme must be BGV (it appears to be CKKS)");
@@ -64,9 +68,10 @@ namespace heExtension {
     
     BloomFilter::BloomFilter(uint32_t hash_function_count, uint32_t bit_count, 
                             const helib::PubKey & pk, const helib::EncryptedArray & ea, const helib::Context & context,
+                            std::vector<helib::zzX> unpackSlotEncoding,
                             std::vector <std::function <uint32_t(const void *, size_t len)>> * hash_functions):
                             hash_function_count(hash_function_count), filter_bit_length(bit_count),
-                            pk(pk), ea(ea), context(context), 
+                            pk(pk), ea(ea), context(context), unpackSlotEncoding(unpackSlotEncoding),
                             hash_functions(hash_functions), filter(nullptr) {
         
         if(context.isCKKS())
@@ -121,6 +126,9 @@ namespace heExtension {
             aux *= to_add->at(i);
 
             this->filter->at(i) += aux;
+
+            if(this->filter->at(i).bitCapacity() < 150)
+                this->pk.reCrypt(this->filter->at(i));
         }
     }
 
@@ -143,8 +151,13 @@ namespace heExtension {
         if(other.context != this->context)
             throw std::invalid_argument("filter BGV contexts are different");
 
-        for(uint32_t i = 0; i < other.filter->size(); i++) 
+        for(uint32_t i = 0; i < other.filter->size(); i++) {
+
             this->filter->at(i) *= other.filter->at(i);
+
+            if(this->filter->at(i).bitCapacity() < 150)
+                this->pk.reCrypt(this->filter->at(i));
+        }
     }
 
     helib::Ctxt BloomFilter::__query_for_element(std::vector <uint32_t> positions_to_query, const uint32_t pos_offset, const uint32_t pos_len) const {
@@ -158,6 +171,10 @@ namespace heExtension {
             this->ea.shift(ctxt_cpy, ctxt_offset);
 
             ctxt_cpy *= *this->QUERY_MASK;
+
+            if(ctxt_cpy.bitCapacity() < 150)
+                this->pk.reCrypt(ctxt_cpy);
+
             return ctxt_cpy;
         }
         else{
@@ -166,6 +183,10 @@ namespace heExtension {
             helib::Ctxt snd_res = this->__query_for_element(positions_to_query, pos_offset + pos_len / 2, pos_len - pos_len / 2);
         
             fst_res *= snd_res;
+
+            if(fst_res.bitCapacity() < 150)
+                this->pk.reCrypt(fst_res);
+
             return fst_res;
         }
     }
