@@ -173,12 +173,6 @@ Bootstrapping and key-switching data is also generated but most likely not neede
 
         std::cout << "Executing test with " << RND_CNT << " rounds...\n";
 
-        heExtension::BloomFilter server(ELEMENT_COUNT, FALSE_POSITIVE_RATE, HASH_FUNCTION_COUNT,
-                                        pk, ea, *context, this->unpackSlotEncoding);
-
-        heExtension::BloomFilter client(HASH_FUNCTION_COUNT, server.filter_bit_length,
-                                        pk, ea, *context, this->unpackSlotEncoding, &hash_functions);
-
         std::cout << "\n\nElements will be integers, taken from a range of [0, 2 * element count] (empirical range size)" << 
          "and the validity / false positive rate of the queries\n" << 
          "will be tested against an array that indicates whether that element is truly in the set or not\n";
@@ -188,6 +182,12 @@ Bootstrapping and key-switching data is also generated but most likely not neede
         for(int rnd = 0; rnd < this->RND_CNT; rnd++){
 
             std::cout << "\nRound " << rnd << ":\n"; 
+
+            heExtension::BloomFilter server(ELEMENT_COUNT, FALSE_POSITIVE_RATE, HASH_FUNCTION_COUNT,
+                                        pk, ea, *context, this->unpackSlotEncoding);
+
+            heExtension::BloomFilter client(HASH_FUNCTION_COUNT, server.filter_bit_length,
+                                        pk, ea, *context, this->unpackSlotEncoding, &hash_functions);
 
             bool set[TOTAL_ELEMENT_COUNT];
 
